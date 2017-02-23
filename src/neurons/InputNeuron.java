@@ -33,7 +33,18 @@ public class InputNeuron implements Neuron {
     }
 
     @Override
-    public void backPropagation() {
+    public void backPropagation(double learningRate) {
 
     }
+
+    @Override
+    public double correctWeight(double currentWeight, double x, double correction, double learningRate) {
+        return 0;
+    }
+
+    @Override
+    public double computeCorrection() {
+        return 0;
+    }
+
 }

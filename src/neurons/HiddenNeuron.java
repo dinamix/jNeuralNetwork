@@ -49,7 +49,28 @@ public class HiddenNeuron implements Neuron {
     }
 
     @Override
-    public void backPropagation() {
+    public void backPropagation(double learningRate) {
+        for(OutputNeuron out : outputNeighborWeights.keySet()) {
+            double currentWeight = outputNeighborWeights.get(out);
+            double newWeight = correctWeight(currentWeight, x, computeCorrection(), learningRate);
+            outputNeighborWeights.put(out, newWeight);
+        }
+    }
 
+    @Override
+    public double correctWeight(double currentWeight, double x, double correction, double learningRate) {
+        //Assuming 1 output neuron
+        return currentWeight + learningRate * correction * x;
+    }
+
+    @Override
+    public double computeCorrection() {
+        OutputNeuron output = null;
+        for(OutputNeuron out : outputNeighborWeights.keySet()) {
+            output = out;
+        }
+        double w = outputNeighborWeights.get(this);
+        double o = predict.predict(x * w);
+        return o * (1.0 - o) * w * output.computeCorrection();
     }
 }

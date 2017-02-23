@@ -11,6 +11,7 @@ import java.util.Map;
 public class OutputNeuron implements Neuron {
 
     private double x;
+    private double y;
     private Map<HiddenNeuron, Double> neighborWeights;
     private Predictor predict;
 
@@ -27,6 +28,14 @@ public class OutputNeuron implements Neuron {
         this.x = x;
     }
 
+    public double getY() {
+        return y;
+    }
+
+    public void setY(double y) {
+        this.y = y;
+    }
+
     public void setNeighbor(HiddenNeuron hidden, double weight) {
         neighborWeights.put(hidden, weight);
     }
@@ -41,8 +50,28 @@ public class OutputNeuron implements Neuron {
         this.x = predict.predict(sum);
     }
 
+    //TODO Probably don't need to use this since the step is performed in the HiddenNeuron
     @Override
-    public void backPropagation() {
+    public void backPropagation(double learningRate) {
+        for(HiddenNeuron hidden : neighborWeights.keySet()) {
+            double currentWeight = neighborWeights.get(hidden);
+            //Gradient descent step to update weights
+            double newWeight = correctWeight(currentWeight, hidden.getX(), computeCorrection(), learningRate);
+            //TODO need to update both weights here since we have 2 nodes per edge
+            //TODO should change in one place, this might be easier with a graph library
+            neighborWeights.put(hidden, newWeight);
+            hidden.setOutput(this, newWeight);
+        }
+    }
 
+    @Override
+    public double correctWeight(double currentWeight, double x, double correction, double learningRate) {
+        return currentWeight + correction * x * learningRate;
+    }
+
+    @Override
+    public double computeCorrection() {
+        double o = predict.predict(x);
+        return o * (1.0 - o) * (y - o);
     }
 }
