@@ -1,31 +1,32 @@
 package neurons;
 
+import networks.Dir;
+import networks.DirEdge;
+import networks.EdgeMatrix;
 import predictors.Predictor;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Created by Ugo on 22/02/2017.
  */
 public class OutputNeuron implements Neuron {
 
-    private double x;
+    private double output;
     private double y;
-    private Map<HiddenNeuron, Double> neighborWeights;
+    private double correction;
     private Predictor predict;
+    private EdgeMatrix edgeMatrix;
 
-    public OutputNeuron(Predictor predict) {
+    public OutputNeuron(Predictor predict, EdgeMatrix edgeMatrix) {
         this.predict = predict;
-        neighborWeights = new HashMap<>();
+        this.edgeMatrix = edgeMatrix;
     }
 
-    public double getX() {
-        return x;
+    public double getOutput() {
+        return output;
     }
 
-    public void setX(double x) {
-        this.x = x;
+    public void setOutput(double output) {
+        this.output = output;
     }
 
     public double getY() {
@@ -36,42 +37,39 @@ public class OutputNeuron implements Neuron {
         this.y = y;
     }
 
-    public void setNeighbor(HiddenNeuron hidden, double weight) {
-        neighborWeights.put(hidden, weight);
+    public double getCorrection() {
+        return correction;
     }
 
     @Override
     public void feedForward() {
         double sum = 0;
-        for(HiddenNeuron input : neighborWeights.keySet()) {
-            double weight = neighborWeights.get(input);
-            sum += weight * input.getX();
+        for(Neuron input : edgeMatrix.getNeuronConnections(this)) {
+            DirEdge dirEdge = edgeMatrix.getDirEdge(this, input);
+            if(dirEdge.getDir().equals(Dir.OUT)) continue; //continue if edge coming out of this
+            double weight = dirEdge.getWeight();
+            sum += weight * input.getOutput();
         }
-        this.x = predict.predict(sum);
+        //TODO consider changing this prediction to binary classification if necessary using strategy pattern predictor
+        this.output = predict.predict(sum);
     }
 
-    //TODO Probably don't need to use this since the step is performed in the HiddenNeuron
     @Override
     public void backPropagation(double learningRate) {
-        for(HiddenNeuron hidden : neighborWeights.keySet()) {
-            double currentWeight = neighborWeights.get(hidden);
-            //Gradient descent step to update weights
-            double newWeight = correctWeight(currentWeight, hidden.getX(), computeCorrection(), learningRate);
-            //TODO need to update both weights here since we have 2 nodes per edge
-            //TODO should change in one place, this might be easier with a graph library
-            neighborWeights.put(hidden, newWeight);
-            hidden.setOutput(this, newWeight);
+        for(Neuron hidden : edgeMatrix.getNeuronConnections(this)) {
+            double currentWeight = edgeMatrix.getEdgeWeight(this, hidden);
+            correction = computeCorrection();
+            double newWeight = correctWeight(currentWeight, hidden.getOutput(), correction, learningRate);
+            edgeMatrix.updateEdge(this, hidden, newWeight);
         }
     }
 
-    @Override
     public double correctWeight(double currentWeight, double x, double correction, double learningRate) {
         return currentWeight + correction * x * learningRate;
     }
 
-    @Override
     public double computeCorrection() {
-        double o = predict.predict(x);
-        return o * (1.0 - o) * (y - o);
+        double sigmoidOut = predict.predict(output);
+        return sigmoidOut * (1.0 - sigmoidOut) * (y - sigmoidOut);
     }
 }

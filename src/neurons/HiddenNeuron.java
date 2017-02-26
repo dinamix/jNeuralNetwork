@@ -1,76 +1,71 @@
 package neurons;
 
-import jdk.internal.util.xml.impl.Input;
+import networks.Dir;
+import networks.DirEdge;
+import networks.EdgeMatrix;
 import predictors.Predictor;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Created by Ugo on 22/02/2017.
  */
 public class HiddenNeuron implements Neuron {
 
-    private double x;
-    private Map<InputNeuron, Double> inputNeighborWeights;
-    private Map<OutputNeuron, Double> outputNeighborWeights;
+    private double output; //This gets set during a feed forward through sigmoid function
+    private double correction;
     private Predictor predict;
+    private EdgeMatrix edgeMatrix;
 
-    public HiddenNeuron(Predictor predict) {
+    public HiddenNeuron(Predictor predict, EdgeMatrix edgeMatrix) {
         this.predict = predict;
-        inputNeighborWeights = new HashMap<>();
-        outputNeighborWeights = new HashMap<>();
+        this.edgeMatrix = edgeMatrix;
     }
 
-    public double getX() {
-        return x;
+    public double getOutput() {
+        return output;
     }
 
-    public void setX(double x) {
-        this.x = x;
+    public void setOutput(double output) {
+        this.output = output;
     }
 
-    public void setInput(InputNeuron input, double weight) {
-        inputNeighborWeights.put(input, weight);
-    }
-
-    public void setOutput(OutputNeuron output, double weight) {
-        outputNeighborWeights.put(output, weight);
+    public double getCorrection() {
+        return correction;
     }
 
     @Override
     public void feedForward() {
         double sum = 0;
-        for(InputNeuron input : inputNeighborWeights.keySet()) {
-            double weight = inputNeighborWeights.get(input);
-            sum += weight * input.getX();
+        for(Neuron input : edgeMatrix.getNeuronConnections(this)) {
+            DirEdge dirEdge = edgeMatrix.getDirEdge(this, input);
+            if(dirEdge.getDir().equals(Dir.OUT)) continue; //continue if edge coming out of this
+            double weight = dirEdge.getWeight();
+            sum += weight * input.getOutput();
         }
-        this.x = predict.predict(sum);
+        this.output = predict.predict(sum);
     }
 
     @Override
     public void backPropagation(double learningRate) {
-        for(OutputNeuron out : outputNeighborWeights.keySet()) {
-            double currentWeight = outputNeighborWeights.get(out);
-            double newWeight = correctWeight(currentWeight, x, computeCorrection(), learningRate);
-            outputNeighborWeights.put(out, newWeight);
+        for(Neuron out : edgeMatrix.getNeuronConnections(this)) {
+            DirEdge dirEdgeOut = edgeMatrix.getDirEdge(this, out);
+            if(dirEdgeOut.getDir().equals(Dir.IN)) continue; //if coming into this then continue
+            double outWeight = dirEdgeOut.getWeight();
+            for (Neuron in : edgeMatrix.getNeuronConnections(this)) {
+                DirEdge dirEdgeIn = edgeMatrix.getDirEdge(this, out);
+                if(dirEdgeIn.getDir().equals(Dir.OUT)) continue; //if coming out of this then continue
+                double currentWeight = dirEdgeIn.getWeight();
+                correction = computeCorrection(outWeight, out.getCorrection());
+                double newWeight = correctWeight(currentWeight, output, correction, learningRate);
+                edgeMatrix.updateEdge(in, this, newWeight);
+            }
         }
     }
 
-    @Override
-    public double correctWeight(double currentWeight, double x, double correction, double learningRate) {
-        //Assuming 1 output neuron
-        return currentWeight + learningRate * correction * x;
+    public double correctWeight(double currentWeight, double output, double correction, double learningRate) {
+        return currentWeight + learningRate * correction * output;
     }
 
-    @Override
-    public double computeCorrection() {
-        OutputNeuron output = null;
-        for(OutputNeuron out : outputNeighborWeights.keySet()) {
-            output = out;
-        }
-        double w = outputNeighborWeights.get(this);
-        double o = predict.predict(x * w);
-        return o * (1.0 - o) * w * output.computeCorrection();
+    public double computeCorrection(double outWeight, double outCorrection) {
+        return output * (1.0 - output) * outWeight * outCorrection;
     }
 }
