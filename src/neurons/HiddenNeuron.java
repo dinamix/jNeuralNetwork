@@ -43,18 +43,13 @@ public class HiddenNeuron implements Neuron {
 
     @Override
     public void backPropagation(double learningRate) {
-        for(Neuron out : edgeMatrix.getNeuronConnections(this)) {
-            DirEdge dirEdgeOut = edgeMatrix.getDirEdge(this, out);
-            if(dirEdgeOut.getDir().equals(Dir.IN)) continue; //if coming into this then continue
-            double outWeight = dirEdgeOut.getWeight();
-            for (Neuron in : edgeMatrix.getNeuronConnections(this)) {
-                DirEdge dirEdgeIn = edgeMatrix.getDirEdge(this, in);
-                if(dirEdgeIn.getDir().equals(Dir.OUT)) continue; //if coming out of this then continue
-                double currentWeight = dirEdgeIn.getWeight();
-                correction = computeCorrection(outWeight, out.getCorrection());
-                double newWeight = correctWeight(currentWeight, output, correction, learningRate);
-                edgeMatrix.updateEdge(in, this, newWeight);
-            }
+        correction = computeCorrection();
+        for (Neuron in : edgeMatrix.getNeuronConnections(this)) {
+            DirEdge dirEdgeIn = edgeMatrix.getDirEdge(this, in);
+            if(dirEdgeIn.getDir().equals(Dir.OUT)) continue; //if coming out of this then continue
+            double currentWeight = dirEdgeIn.getWeight();
+            double newWeight = correctWeight(currentWeight, in.getOutput(), correction, learningRate);
+            edgeMatrix.updateEdge(in, this, newWeight);
         }
     }
 
@@ -62,7 +57,15 @@ public class HiddenNeuron implements Neuron {
         return currentWeight + learningRate * correction * output;
     }
 
-    public double computeCorrection(double outWeight, double outCorrection) {
-        return output * (1.0 - output) * outWeight * outCorrection;
+    public double computeCorrection() {
+        double correctionSum = 0;
+        for(Neuron out : edgeMatrix.getNeuronConnections(this)) {
+            DirEdge dirEdgeOut = edgeMatrix.getDirEdge(this, out);
+            if(dirEdgeOut.getDir().equals(Dir.IN)) continue; //if coming into this then continue
+            double prevCorrection = out.getCorrection();
+            double prevWeight = dirEdgeOut.getWeight();
+            correctionSum += prevCorrection * prevWeight;
+        }
+        return output * (1.0 - output) * correctionSum;
     }
 }

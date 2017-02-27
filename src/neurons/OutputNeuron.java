@@ -47,7 +47,6 @@ public class OutputNeuron implements Neuron {
             double weight = dirEdge.getWeight();
             sum += weight * input.getOutput();
         }
-        //TODO consider changing this prediction to binary classification if necessary using strategy pattern predictor
         this.output = predict.predict(sum);
     }
 
