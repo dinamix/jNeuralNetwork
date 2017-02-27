@@ -2,9 +2,6 @@ package neurons;
 
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
-/**
- * Created by Ugo on 22/02/2017.
- */
 public class InputNeuron implements Neuron {
 
     private double output;

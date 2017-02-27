@@ -4,14 +4,11 @@ import networks.Network;
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * Created by Ugo on 25/02/2017.
- */
 public class Main {
     public static void main(String[] args) {
         int inputSize = 8;
         int numberHiddenLayer = 1;
-        int hiddenSize = 1;
+        int hiddenSize = 5;
         int outputSize = 8;
         Network network = new LayerNetwork(inputSize, numberHiddenLayer, hiddenSize, outputSize);
         List<List<Integer>> input = Arrays.asList(
@@ -35,9 +32,13 @@ public class Main {
                 Arrays.asList(new Integer[]{0, 0, 0, 0, 0, 0, 0, 1})
                 );
 
-        for(int i = 0; i < 1000; i++) {
-            network.trainStochastic(input.get(0), output.get(0));
+        for(int i = 0; i < 20000; i++) {
+            for(int sample = 0; sample < inputSize; sample++) {
+                network.trainStochastic(input.get(sample), output.get(sample));
+            }
         }
-        network.forwardFeedNetwork(input.get(0));
+        for(int sample = 0; sample < inputSize; sample++) {
+            System.out.println(network.forwardFeedNetwork(input.get(sample)));
+        }
     }
 }

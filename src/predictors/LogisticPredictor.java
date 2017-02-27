@@ -1,8 +1,5 @@
 package predictors;
 
-/**
- * Created by Ugo on 22/02/2017.
- */
 public class LogisticPredictor implements Predictor {
     @Override
     public double predict(double x) {

@@ -5,9 +5,6 @@ import networks.DirEdge;
 import networks.EdgeMatrix;
 import predictors.Predictor;
 
-/**
- * Created by Ugo on 22/02/2017.
- */
 public class HiddenNeuron implements Neuron {
 
     private double output; //This gets set during a feed forward through sigmoid function

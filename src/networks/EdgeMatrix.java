@@ -6,9 +6,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Created by Ugo on 25/02/2017.
- */
 public class EdgeMatrix {
 
     //Each Neuron and the edges to corresponding neighbors neurons kept in this state

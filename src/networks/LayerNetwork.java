@@ -2,7 +2,6 @@ package networks;
 
 import neurons.HiddenNeuron;
 import neurons.InputNeuron;
-import neurons.Neuron;
 import neurons.OutputNeuron;
 import predictors.LogisticPredictor;
 
@@ -57,7 +56,7 @@ public class LayerNetwork implements Network {
             //TODO account for multiple layers here if needed
             List<HiddenNeuron> firstLayer = hiddenLayers.get(0);
             for(HiddenNeuron hidden : firstLayer) {
-                double initialWeight = 1.0;
+                double initialWeight = random.nextGaussian();
                 edgeMatrix.createDirectedEdge(input, hidden, initialWeight);
             }
         }
@@ -67,7 +66,7 @@ public class LayerNetwork implements Network {
             //TODO account for multiple layers here if needed
             List<HiddenNeuron> firstLayer = hiddenLayers.get(0);
             for(HiddenNeuron hidden : firstLayer) {
-                double initialWeight = 1.0;
+                double initialWeight = random.nextGaussian();
                 edgeMatrix.createDirectedEdge(hidden, output, initialWeight);
             }
         }
@@ -95,7 +94,7 @@ public class LayerNetwork implements Network {
             out.feedForward();
         }
 
-        double learningRate = 0.1;
+        double learningRate = 0.15;
         //Do back propogation for output neurons
         for(OutputNeuron out : outputLayer) {
             out.backPropagation(learningRate);
@@ -106,21 +105,10 @@ public class LayerNetwork implements Network {
                 hidden.backPropagation(learningRate);
             }
         }
-
-        /**Get final output
-        for(List<HiddenNeuron> layer : hiddenLayers) {
-            int i = 1;
-            for (HiddenNeuron hidden : layer) {
-                String printOut = i + " : ";
-                printOut += hidden.getOutput() + " ";
-                System.out.println(printOut);
-                i++;
-            }
-        }**/
     }
 
     @Override
-    public void forwardFeedNetwork(List<Integer> input) {
+    public List<Integer> forwardFeedNetwork(List<Integer> input) {
         //Copy inputs to network inputs
         for(int i = 0; i < input.size(); i++) {
             InputNeuron layerInput = inputLayer.get(i);
@@ -129,18 +117,29 @@ public class LayerNetwork implements Network {
 
         //Feed to hidden layer
         //TODO Note that this considers multiple hidden layers but in rest of code we assume 1 for now
+        String hidTxt = "";
         for(List<HiddenNeuron> layer : hiddenLayers) {
             for(HiddenNeuron hidden : layer) {
                 hidden.feedForward();
+                hidTxt += hidden.getOutput() + " ";
             }
         }
+        //Print for convenience
+        System.out.println("Hidden sigmoid : " + hidTxt);
 
         //Get final output
         String outTxt = "";
+        String outTxtBin = "";
+        List<Integer> outReturn = new ArrayList<>();
         for(OutputNeuron out : outputLayer) {
             out.feedForward();
             outTxt += out.getOutput() + " ";
+            outTxtBin += (int) Math.round(out.getOutput()) + " ";
+            outReturn.add((int) Math.round(out.getOutput()));
         }
-        System.out.println(outTxt);
+        //Print for convenience
+        //System.out.println(outTxt);
+        //System.out.println(outTxtBin);
+        return outReturn;
     }
 }
