@@ -28,16 +28,21 @@ public class EdgeMatrix {
      * @param n2
      * @param weight
      */
-    public void updateEdge(Neuron n1, Neuron n2, double weight) {
-        if(!edgeMatrix.containsKey(n1)) {
-            addNeuron(n1);
-        }
+    public void createDirectedEdge(Neuron n1, Neuron n2, double weight) {
+        addNeuron(n1);
         edgeMatrix.get(n1).put(n2, new DirEdge(weight, Dir.OUT));
-
-        if(!edgeMatrix.containsKey(n2)) {
-            addNeuron(n2);
-        }
+        addNeuron(n2);
         edgeMatrix.get(n2).put(n1, new DirEdge(weight, Dir.IN));
+    }
+
+    public void updateEdge(Neuron n1, Neuron n2, double weight) {
+        Map<Neuron, DirEdge> edges1 = edgeMatrix.get(n1);
+        DirEdge dirEdge1 = edges1.get(n2);
+        dirEdge1.setWeight(weight);
+
+        Map<Neuron, DirEdge> edges2 = edgeMatrix.get(n2);
+        DirEdge dirEdge2 = edges2.get(n1);
+        dirEdge2.setWeight(weight);
     }
 
     public double getEdgeWeight(Neuron n1, Neuron n2) {

@@ -51,7 +51,7 @@ public class HiddenNeuron implements Neuron {
             if(dirEdgeOut.getDir().equals(Dir.IN)) continue; //if coming into this then continue
             double outWeight = dirEdgeOut.getWeight();
             for (Neuron in : edgeMatrix.getNeuronConnections(this)) {
-                DirEdge dirEdgeIn = edgeMatrix.getDirEdge(this, out);
+                DirEdge dirEdgeIn = edgeMatrix.getDirEdge(this, in);
                 if(dirEdgeIn.getDir().equals(Dir.OUT)) continue; //if coming out of this then continue
                 double currentWeight = dirEdgeIn.getWeight();
                 correction = computeCorrection(outWeight, out.getCorrection());

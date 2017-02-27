@@ -69,7 +69,6 @@ public class OutputNeuron implements Neuron {
     }
 
     public double computeCorrection() {
-        double sigmoidOut = predict.predict(output);
-        return sigmoidOut * (1.0 - sigmoidOut) * (y - sigmoidOut);
+        return output * (1.0 - output) * (y - output);
     }
 }
