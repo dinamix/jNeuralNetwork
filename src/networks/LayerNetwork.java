@@ -4,10 +4,12 @@ import neurons.HiddenNeuron;
 import neurons.InputNeuron;
 import neurons.OutputNeuron;
 import predictors.LogisticPredictor;
+import trainers.Trainer;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 //TODO Assume we have fully connected bipartite graph between layers for now
 public class LayerNetwork implements Network {
@@ -83,7 +85,7 @@ public class LayerNetwork implements Network {
     }
 
     @Override
-    public void trainStochastic(List<Integer> input, List<Integer> output, double learningRate) {
+    public void trainStochastic(List<Double> input, List<Double> output, double learningRate) {
         //Copy inputs to network inputs
         for(int i = 0; i < input.size(); i++) {
             InputNeuron layerInput = inputLayer.get(i);
@@ -117,7 +119,19 @@ public class LayerNetwork implements Network {
     }
 
     @Override
-    public List<Integer> forwardFeedNetwork(List<Integer> input) {
+    public void trainStrategy(Trainer trainer, List<List<Double>> inputs, List<List<Double>> outputs, double learningRate, double epsilon) {
+        trainer.train(this, inputs, outputs, learningRate, epsilon);
+    }
+
+    @Override
+    public List<Double> forwardFeedRounded(List<Double> input) {
+        List<Double> output = forwardFeed(input);
+        output = output.stream().map(d -> (double)Math.round(d)).collect(Collectors.toList());
+        return output;
+    }
+
+    @Override
+    public List<Double> forwardFeed(List<Double> input) {
         //Copy inputs to network inputs
         for(int i = 0; i < input.size(); i++) {
             InputNeuron layerInput = inputLayer.get(i);
@@ -138,12 +152,12 @@ public class LayerNetwork implements Network {
         //Get final output
         String outTxt = "";
         String outTxtBin = "";
-        List<Integer> outReturn = new ArrayList<>();
+        List<Double> outReturn = new ArrayList<>();
         for(OutputNeuron out : outputLayer) {
             out.feedForward();
             outTxt += out.getOutput() + " ";
-            outTxtBin += (int) Math.round(out.getOutput()) + " ";
-            outReturn.add((int) Math.round(out.getOutput()));
+            outTxtBin += out.getOutput() + " ";
+            outReturn.add(out.getOutput());
         }
         //Print for convenience
         //System.out.println(outTxt);
