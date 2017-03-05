@@ -34,9 +34,10 @@ public class Main {
                 );
 
         Random rand = new Random();
-        for(int i = 0; i < 50000; i++) {
+        double learningRate = 0.15;
+        for(int i = 0; i < 60000; i++) {
             int sample = rand.nextInt(8);
-            network.trainStochastic(input.get(sample), output.get(sample));
+            network.trainStochastic(input.get(sample), output.get(sample), learningRate);
         }
         for(int sample = 0; sample < inputSize; sample++) {
             System.out.println(network.forwardFeedNetwork(input.get(sample)));

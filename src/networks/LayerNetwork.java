@@ -10,8 +10,6 @@ import java.util.List;
 import java.util.Random;
 
 //TODO Assume we have fully connected bipartite graph between layers for now
-//TODO Should change to more flexible network
-//TODO Also assume we only have one hidden layer for now, List<List> makes it ready for more later
 public class LayerNetwork implements Network {
     private List<InputNeuron> inputLayer;
     private List<OutputNeuron> outputLayer;
@@ -39,7 +37,6 @@ public class LayerNetwork implements Network {
             hiddenLayers.add(hidden);
         }
 
-        //Connect network
         connectNetwork();
     }
 
@@ -49,11 +46,12 @@ public class LayerNetwork implements Network {
      */
     private void connectNetwork() {
         //Keep a random gaussian distribution through weight initialization
+        //This has default mean of 0.0 and standard deviation of 1.0
         Random random = new Random();
 
         //Connect input to hidden layer
         for(InputNeuron input : inputLayer) {
-            //TODO account for multiple layers here if needed
+            //Get the first hidden layer
             List<HiddenNeuron> firstLayer = hiddenLayers.get(0);
             for(HiddenNeuron hidden : firstLayer) {
                 double initialWeight = random.nextGaussian();
@@ -61,10 +59,22 @@ public class LayerNetwork implements Network {
             }
         }
 
+        //Connect hidden layers appropriately if we have more than 1 hidden layer
+        for(int layer = 0; layer < hiddenLayers.size() - 1; layer++) {
+            List<HiddenNeuron> hiddenLayerOut = hiddenLayers.get(layer);
+            List<HiddenNeuron> hiddenLayerIn = hiddenLayers.get(layer + 1);
+            for(HiddenNeuron hiddenOut : hiddenLayerOut) {
+                for(HiddenNeuron hiddenIn : hiddenLayerIn) {
+                    double initialWeight = random.nextGaussian();
+                    edgeMatrix.createDirectedEdge(hiddenOut, hiddenIn, initialWeight);
+                }
+            }
+        }
+
         //Connect hidden layer to output
         for(OutputNeuron output : outputLayer) {
-            //TODO account for multiple layers here if needed
-            List<HiddenNeuron> firstLayer = hiddenLayers.get(0);
+            //Get the last hidden layer
+            List<HiddenNeuron> firstLayer = hiddenLayers.get(hiddenLayers.size() - 1);
             for(HiddenNeuron hidden : firstLayer) {
                 double initialWeight = random.nextGaussian();
                 edgeMatrix.createDirectedEdge(hidden, output, initialWeight);
@@ -72,7 +82,8 @@ public class LayerNetwork implements Network {
         }
     }
 
-    public void trainStochastic(List<Integer> input, List<Integer> output) {
+    @Override
+    public void trainStochastic(List<Integer> input, List<Integer> output, double learningRate) {
         //Copy inputs to network inputs
         for(int i = 0; i < input.size(); i++) {
             InputNeuron layerInput = inputLayer.get(i);
@@ -82,7 +93,6 @@ public class LayerNetwork implements Network {
         }
 
         //Feed to hidden layer
-        //TODO Note that this considers multiple hidden layers but in rest of code we assume 1 for now
         for(List<HiddenNeuron> layer : hiddenLayers) {
             for(HiddenNeuron hidden : layer) {
                 hidden.feedForward();
@@ -94,7 +104,6 @@ public class LayerNetwork implements Network {
             out.feedForward();
         }
 
-        double learningRate = 0.15;
         //Do back propogation for output neurons
         for(OutputNeuron out : outputLayer) {
             out.backPropagation(learningRate);
@@ -116,7 +125,6 @@ public class LayerNetwork implements Network {
         }
 
         //Feed to hidden layer
-        //TODO Note that this considers multiple hidden layers but in rest of code we assume 1 for now
         String hidTxt = "";
         for(List<HiddenNeuron> layer : hiddenLayers) {
             for(HiddenNeuron hidden : layer) {
@@ -125,7 +133,7 @@ public class LayerNetwork implements Network {
             }
         }
         //Print for convenience
-        System.out.println("Hidden sigmoid : " + hidTxt);
+        //System.out.println("Hidden sigmoid : " + hidTxt);
 
         //Get final output
         String outTxt = "";
