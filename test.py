@@ -6,20 +6,21 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, f1_score, accuracy_score, confusion_matrix
 from sklearn.cross_validation import KFold
 from sklearn.preprocessing import normalize
-from sklearn.neural_network import MLPClassifier
 from sklearn.utils import shuffle
-from skimage.filters import gaussian_filter
 from sklearn import svm
 
 
 
-sift = cv2.SIFT()
+# sift = cv2.SIFT()
 
 # to visualize only
 # import scipy.misc
 # scipy.misc.imshow(trainX[0].transpose(2,1,0)) # put RGB channels last
 
 def kFoldTest(trainX, trainY):
+
+	print "Starting kFold..."
+
 	k_fold = KFold(n=len(trainX), n_folds=6)
 
 	for train_indices, test_indices in k_fold:
@@ -46,6 +47,8 @@ def kFoldTest(trainX, trainY):
 		print accuracy
 		print report
 
+	print "Finished kFold..."
+
 def predict(trainX, trainY, testX):
 
 	print "Started predictions..."
@@ -68,40 +71,37 @@ def logisticRegression(trainX, trainY, testX):
 
 	#logreg = MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(5, 2), random_state=1)
 
-	logreg = svm.SVC()
+	logreg = LogisticRegression()
+
+	print "Starting fitting..."
 
 	logreg.fit(trainX, trainY)
+
+	print "Finished fitting..."
 
 	return logreg.predict(testX)
 
 
-def computeFeatures(images):
+def grayImages(data):
 
-	print "Computing features..."
+	print "Graying images..."
 
-	kds = []
-	kps = []    
+	grayImages = [cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) for img in data]
 
-	for img in images:
+	print "Finished graying images..."
 
-		# Grayscaling
-		gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+	return grayImages
 
-		# blurred
-		# gray = gaussian_filter(gray, sigma=20)
 
-		# extracting features, whatever that means
-		dense = cv2.FeatureDetector_create("Dense")
-		kp = dense.detect(gray)
+def flattenImages(data):
 
-		kp, kd = sift.compute(gray, kp)
-		kds.append(kd)
-		kps.append(kp)
+	print "Flattening images..."
 
-	print "Computing features..."
-        
-	return kps, kds
+	flattenedImages = [ np.array(img).flatten() / 255.0 for img in data ]
 
+	print "Finished flattening images..."
+
+	return flattenedImages
 
 def initProcessing():
 
@@ -115,23 +115,13 @@ def initProcessing():
 
 	(trainX, trainY) = shuffle(trainX, trainY, random_state=0)
 
-	(trainKps, trainKds) = computeFeatures(trainX)
-	(testKps, testKds) = computeFeatures(testX)
+	trainXData = grayImages(trainX)
+	testXData = grayImages(testX)
 
-	trainXData = []
-	trainYData = []
-	testXData = []
+	trainXData = flattenImages(trainXData)
+	testXData = flattenImages(testXData)
 
-	for i in range(len(trainKds)):
-		trainXData.append(trainKds[i][0] + trainKds[i][1] + trainKds[i][2])
-		trainYData.append(trainY[i])
-
-	for i in range(len(testKds)):
-		testXData.append(testKds[i][0] + testKds[i][1] + testKds[i][2])
-
-	
-
-	kFoldTest(trainXData, trainYData)
+	kFoldTest(trainXData, trainY)
 
 	#predict(trainXData, trainYData, testXData)
 
