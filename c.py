@@ -1,72 +1,121 @@
 import numpy as np
-import tflearn
-from tflearn.data_utils import shuffle
-from tflearn.layers.core import input_data, dropout, fully_connected
-from tflearn.layers.conv import conv_2d, max_pool_2d
-from tflearn.layers.estimator import regression
-from tflearn.data_preprocessing import ImagePreprocessing
-from tflearn.data_augmentation import ImageAugmentation
 
+import keras
+from keras.models import Sequential
+from keras.layers import Convolution2D, MaxPooling2D, AtrousConvolution2D
+from keras.layers import Dense, Activation, Dropout, Flatten, BatchNormalization
+from keras.preprocessing.image import ImageDataGenerator
+from keras.utils import np_utils
+from keras.callbacks import ModelCheckpoint
+from keras import backend as K
+from keras.optimizers import Adam
+
+import csv
+
+from keras.models import load_model
 
 
 def cnn(X, Y):
 
-	X_test = X[len(X)*80:]
-	Y_test = Y[len(Y)*80:]
+	BATCH_SIZE = 128;
+	CROSS_VAL = 0.10;
+	EPOCH_NUM = 100;
+	SOFTMAX_SIZE = 40;
 
-	X = X[:len(X)*80]
-	Y = Y[:len(Y)*80]
+	Y = np_utils.to_categorical(Y, 40);
 
-	img_prep = ImagePreprocessing()
-	img_prep.add_featurewise_zero_center()
-	img_prep.add_featurewise_stdnorm()
+	X = np.swapaxes(X, 1, 3);
+	X = np.swapaxes(X, 1, 2);
 
-	img_aug = ImageAugmentation()
-	img_aug.add_random_blur(sigma_max=3.)
-	
-	network = input_data(shape=[None, 64, 64, 3], 
-				data_preprocessing=img_prep,
-				data_augmentation=img_aug)
+	X = X.astype(np.float32);
 
-	network = conv_2d(network, 32, 3, activation='relu')
+	indices = int(Y.shape[0] * CROSS_VAL);
 
-	network = max_pool_2d(network, 2)
+	XValid = X[:indices]
+	YValid = Y[:indices]
 
-	network = conv_2d(network, 64, 3, activation='relu')
+	XTrain = X[indices:]
+	YTrain = Y[indices:]
 
-	network = conv_2d(network, 64, 3, activation='relu')
-	
-	network = max_pool_2d(network, 2)
+	model = Sequential()
 
-	network = fully_connected(network, 512, activation='relu')
+	model.add(Convolution2D(64, 3, 3, input_shape=(64, 64, 3)))
+	model.add(Activation('relu'))
+	model.add(Convolution2D(64, 3, 3))
+	model.add(Activation('relu'))
+	model.add(MaxPooling2D(pool_size=(2, 2)))
 
-	network = dropout(network, 0.5)
+	model.add(Convolution2D(128, 3, 3))
+	model.add(Activation('relu'))
+	model.add(Convolution2D(128, 3, 3))
+	model.add(Activation('relu'))
+	model.add(MaxPooling2D(pool_size=(2, 2)))
 
-	network = fully_connected(network, 2, activation='softmax')
+	model.add(Convolution2D(256, 3, 3))
+	model.add(Activation('relu'))
+	model.add(Convolution2D(256, 3, 3))
+	model.add(Activation('relu'))
+	model.add(MaxPooling2D(pool_size=(2, 2)))
 
-	network = regression(network, optimizer='adam',
-				loss='categorical_crossentropy',
-				learning_rate=0.001)
+	model.add(Convolution2D(512, 3, 3))
+	model.add(Activation('relu'))
+	# model.add(Convolution2D(512, 3, 3))
+	# model.add(Activation('relu'))
+	model.add(MaxPooling2D(pool_size=(2, 2)))
 
-	model = tflearn.DNN(network, tensorboard_verbose=0, checkpoint_path='img-classifier.tfl.ckpt')
+	# model.add(Convolution2D(1024, 3, 3))
+	# model.add(Activation('relu'))
+	# model.add(Convolution2D(1024, 3, 3))
+	# model.add(Activation('relu'))
+	# model.add(MaxPooling2D(pool_size=(2, 2)))
 
-	print "Fitting..."
-	model.fit(X, Y, n_epoch=100, shuffle=True, validation_set=(X_test, Y_test),
-				show_metric=True, batch_size=96,
-				snapshot_epoch=True,
-				run_id='img-classifier')
+	model.add(Flatten())
+	model.add(Dense(SOFTMAX_SIZE))
+	model.add(Dropout(0.5))
+	model.add(Activation('softmax'))
 
-	print "Finished fitting..."
+	adam = Adam(lr=0.0002)
+	model.compile(
+	    loss='categorical_crossentropy',
+	    optimizer=adam,
+	    metrics=['accuracy'])
 
-	model.save("img-classifier.tfl")
+	trainGenerator = keras.preprocessing.image.ImageDataGenerator(featurewise_center=True,
+	    samplewise_center=False,
+	    featurewise_std_normalization=True,
+	    samplewise_std_normalization=False,
+	    zca_whitening=False,
+	    rotation_range=20,
+	    width_shift_range=0.20,
+	    height_shift_range=0.20,
+	    shear_range=0.20,
+	    zoom_range=0.20,
+	    channel_shift_range=0.05,
+	    fill_mode='nearest',                                                                                                                                                                                                                                                                        
+	    cval=0.,
+	    horizontal_flip=True,
+	    vertical_flip=False,
+	    rescale=None,
+	    dim_ordering=K.image_dim_ordering())
 
-	return model
+	trainGenerator.fit(XTrain);
+	trainFlow = trainGenerator.flow(XTrain, YTrain, batch_size=BATCH_SIZE);
 
-def format(data):
+	validationGenerator = keras.preprocessing.image.ImageDataGenerator(
+		featurewise_center=True,
+		samplewise_center=False,
+		featurewise_std_normalization=True,
+		samplewise_std_normalization=False);
 
-	return [img / 255.0 for img in data]
+	validationGenerator.fit(XTrain);
+	validFlow = validationGenerator.flow(XTrain[0:indices], YTrain[0:indices], batch_size=BATCH_SIZE);
 
-
+	model.fit_generator(trainFlow,
+		samples_per_epoch=XTrain.shape[0] - indices,
+		nb_epoch=EPOCH_NUM,
+		callbacks=[ModelCheckpoint('best_model.h5', monitor='val_loss', save_best_only=True)],
+		validation_data=validFlow,
+		nb_val_samples=indices)
 
 def initProcessing():	
 
@@ -74,18 +123,12 @@ def initProcessing():
 	trainY = np.load('tinyY.npy') 
 	testX = np.load('tinyX_test.npy') # (6600, 3, 64, 64)
 
-	# Convert 3x64x64 to 64x64x3
-	trainX = np.rollaxis(trainX, 1, 4)
-	testX = np.rollaxis(testX, 1, 4)
+	randomization = np.random.permutation(trainY.shape[0])
 
-	trainX = format(trainX)
-	testX = format(testX)
-
-	trainX, trainY = shuffle(trainX, trainY)
+	trainX[:] = trainX[randomization]
+	trainY[:] = trainY[randomization]
 
 	model = cnn(trainX, trainY)
-
-	# predictions = model.predict(testX)
 
 
 if __name__ == "__main__":
