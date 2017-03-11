@@ -9,6 +9,7 @@ from keras.utils import np_utils
 from keras.callbacks import ModelCheckpoint
 from keras import backend as K
 from keras.optimizers import Adam
+from keras.constraints import maxnorm
 
 import csv
 
@@ -39,39 +40,35 @@ def cnn(X, Y):
 
 	model = Sequential()
 
-	model.add(Convolution2D(64, 3, 3, input_shape=(64, 64, 3)))
+	model.add(Convolution2D(32, 3, 3, input_shape=(64, 64, 3)))
 	model.add(Activation('relu'))
+	model.add(Dropout(0.2))
+	model.add(Convolution2D(32, 3, 3))
+	model.add(Activation('relu'))
+	model.add(MaxPooling2D(pool_size=(2, 2)))
+
+	model.add(Convolution2D(64, 3, 3))
+	model.add(Activation('relu'))
+	model.add(Dropout(0.2))
 	model.add(Convolution2D(64, 3, 3))
 	model.add(Activation('relu'))
 	model.add(MaxPooling2D(pool_size=(2, 2)))
 
 	model.add(Convolution2D(128, 3, 3))
 	model.add(Activation('relu'))
+	model.add(Dropout(0.2))
 	model.add(Convolution2D(128, 3, 3))
 	model.add(Activation('relu'))
 	model.add(MaxPooling2D(pool_size=(2, 2)))
-
-	model.add(Convolution2D(256, 3, 3))
-	model.add(Activation('relu'))
-	model.add(Convolution2D(256, 3, 3))
-	model.add(Activation('relu'))
-	model.add(MaxPooling2D(pool_size=(2, 2)))
-
-	model.add(Convolution2D(512, 3, 3))
-	model.add(Activation('relu'))
-	# model.add(Convolution2D(512, 3, 3))
-	# model.add(Activation('relu'))
-	model.add(MaxPooling2D(pool_size=(2, 2)))
-
-	# model.add(Convolution2D(1024, 3, 3))
-	# model.add(Activation('relu'))
-	# model.add(Convolution2D(1024, 3, 3))
-	# model.add(Activation('relu'))
-	# model.add(MaxPooling2D(pool_size=(2, 2)))
-
 	model.add(Flatten())
+	model.add(Dropout(0.2))
+
+	model.add(Dense(1024, activation='relu', W_constraint=maxnorm(3)))
+	model.add(Dropout(0.2))
+	model.add(Dense(512, activation='relu', W_constraint=maxnorm(3)))
+	model.add(Dropout(0.2))
+
 	model.add(Dense(SOFTMAX_SIZE))
-	model.add(Dropout(0.5))
 	model.add(Activation('softmax'))
 
 	adam = Adam(lr=0.0002)
