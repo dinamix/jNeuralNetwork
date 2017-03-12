@@ -43,11 +43,11 @@ class Network(object):
 
 		return activations, zs
 
-	def gradientDescent(self, trainData, epochs, batchSize, learningRate, validationX = None):
+	def gradientDescent(self, trainData, epochs, learningRate, validationX = None):
 
 		for i in xrange(epochs):
 
-			self.updateBatches(trainData, learningRate)
+			self.updateWeights(trainData, learningRate)
 
 			print "Epoch: " + str(i)
 
@@ -55,28 +55,31 @@ class Network(object):
 				self.evaluate(validationX)
 
 
-	def updateBatches(self, batch, learningRate):
+	def updateWeights(self, batch, learningRate):
 		
 		ww = [np.zeros(w.shape) for w in self.weights]
 		
+		# Pick a training example
 		for x, y in batch:
 			dw = self.backpropagation(x, y)
 			ww = [nw + dnw for nw, dnw in zip(ww, dw)]
 
-		self.weights = [w - (learningRate / len(batch)) * nw for w, nw in zip(self.weights, ww)]
+		self.weights = [w - learningRate * nw for w, nw in zip(self.weights, ww)]
 
 	# Lecture 14 p.16
 	def backpropagation(self, x, y):
 		ww = [np.zeros(w.shape) for w in self.weights]
-		# feedforward
+		# feedforward: Feed example through network to compute 
 		(activations, zs) = self.feedForward(x)
 
 		# backward pass
 		# lecture 14 p.12: cost derivation * sigmoid prime
+		# For the output unit, compute the correction
 		delta = self.cost_derivative(activations[-1], y) * self.sigmoid_prime(zs[-1]).reshape(-1, 1)
 		ww[-1] = np.dot(delta, activations[-2].reshape(1, -1))
 
 		# Lecture 14 p.16
+		# For each hidden unit h, compute its share of the correction
 		for l in xrange(2, self.nOfLayers):
 			z = zs[-l]
 			sp = self.sigmoid_prime(z).reshape(-1 ,1)
@@ -134,11 +137,11 @@ def initProcessing():
 
 	(trainX, trainY) = shuffle(trainX, trainY, random_state=0)
 
-	trainXData = grayImages(trainX)
-	testXData = grayImages(testX)
+	# trainXData = grayImages(trainX)
+	# testXData = grayImages(testX)
 
-	trainXData = flattenImages(trainXData)
-	testXData = flattenImages(testXData)	
+	trainXData = flattenImages(trainX)
+	testXData = flattenImages(testX)	
 
 	trainXData = normalize(trainXData)
 	testXData = normalize(testXData)
@@ -147,7 +150,7 @@ def initProcessing():
 
 def main():
 
-	CROSS_VAL = 0.20;
+	CROSS_VAL = 0.30;
 
 	(trainX, trainY, testX) = initProcessing()
 
@@ -159,13 +162,13 @@ def main():
 	XTrain = trainX[indices:]
 	YTrain = trainY[indices:]
 
-	network = Network([4096, 100, 100, 40])
+	network = Network([4096 * 3, 1000, 40])
 
 	trainData = zip(XTrain, YTrain)
 	validData = zip(XValid, YValid)
 
-	#def gradientDescent(self, trainData, epochs, batchSize, learningRate, validationX = None):
-	network.gradientDescent(trainData, 100, 128, 0.001, validationX=validData)
+	#def gradientDescent(self, trainData, epochs, learningRate, validationX = None):
+	network.gradientDescent(trainData, 100, 0.00005, validationX=validData)
 
 
 
