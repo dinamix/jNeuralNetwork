@@ -11,36 +11,43 @@ class Network(object):
 
 		self.sizes = sizes
 		self.nOfLayers = len(sizes)
-		self.biases = [np.random.randn(y, 1) for y in sizes[1:]]
 		self.weights = [np.random.randn(y, x) for x, y in zip(sizes[:-1], sizes[1:])]
 
-	def sigmoid(z):
-	    return 1.0 / (1.0 + np.exp(-z))
+	def sigmoid(self, z):
+		return 1.0 / (1.0 + np.exp(-z))
+
+	# lecture 14 p.12
+	def sigmoid_prime(self, z):
+		return self.sigmoid(z) * (1 - self.sigmoid(z))
+
+	# Lecture 14 p.12
+	def cost_derivative(self, output_activations, y):
+
+		output_activations = output_activations.reshape(-1, 1)
+		y = y.reshape(-1, 1)
+
+		return (output_activations - y)
 
 	# lecture 14 p.8
-	def feedForwad(self, a):
+	def feedForward(self, a):
 
-		for b, w in zip(self.biases, self.weights):
-			a = sigmoid(np.dot(w, a) + b)
+		activation = a
+		activations = [a]
+		zs = []
 
-		return a
+		for w in self.weights:
+			z = np.dot(w, activation)
+			zs.append(z)
+			activation = self.sigmoid(z)
+			activations.append(activation)
+
+		return activations, zs
 
 	def gradientDescent(self, trainData, epochs, batchSize, learningRate, validationX = None):
 
-		if validationX:
-			validationLen = len(validationX)
-
-		trainLen = len(trainData)
-
 		for i in xrange(epochs):
 
-			trainData = shuffle(trainData)
-
-			#create batches of size batchSize
-			batches = [trainData[k:k+batchSize] for k in xrange(0, trainLen, batchSize)]
-
-			for batch in batches:
-				self.updateBatches(batch, learningRate)
+			self.updateBatches(trainData, learningRate)
 
 			print "Epoch: " + str(i)
 
@@ -48,10 +55,51 @@ class Network(object):
 				self.evaluate(validationX)
 
 
+	def updateBatches(self, batch, learningRate):
+		
+		ww = [np.zeros(w.shape) for w in self.weights]
+		
+		for x, y in batch:
+			dw = self.backpropagation(x, y)
+			ww = [nw + dnw for nw, dnw in zip(ww, dw)]
 
+		self.weights = [w - (learningRate / len(batch)) * nw for w, nw in zip(self.weights, ww)]
 
+	# Lecture 14 p.16
+	def backpropagation(self, x, y):
+		ww = [np.zeros(w.shape) for w in self.weights]
+		# feedforward
+		(activations, zs) = self.feedForward(x)
 
+		# backward pass
+		# lecture 14 p.12: cost derivation * sigmoid prime
+		delta = self.cost_derivative(activations[-1], y) * self.sigmoid_prime(zs[-1]).reshape(-1, 1)
+		ww[-1] = np.dot(delta, activations[-2].reshape(1, -1))
 
+		# Lecture 14 p.16
+		for l in xrange(2, self.nOfLayers):
+			z = zs[-l]
+			sp = self.sigmoid_prime(z).reshape(-1 ,1)
+			delta = np.dot(self.weights[-l + 1].transpose(), delta) * sp
+			ww[-l] = np.dot(delta, activations[-l - 1].reshape(1, -1))
+
+		return ww
+
+	def evaluate(self, test_data):
+
+		test_results = []
+
+		for x, y in test_data:
+			(activations, zs0) = self.feedForward(x)
+			test_results.append((np.argmax(activations[-1]), np.argmax(y)))
+
+		score = 0
+
+		for (x, y) in test_results:
+			if x == y:
+				score += 1
+
+		print float(score) / float(len(test_data))
 
 
 def flattenImages(data):
@@ -84,7 +132,7 @@ def initProcessing():
 	trainX = np.rollaxis(trainX, 1, 4)
 	testX = np.rollaxis(testX, 1, 4)
 
-	# (trainX, trainY) = shuffle(trainX, trainY, random_state=0)
+	(trainX, trainY) = shuffle(trainX, trainY, random_state=0)
 
 	trainXData = grayImages(trainX)
 	testXData = grayImages(testX)
@@ -99,9 +147,26 @@ def initProcessing():
 
 def main():
 
+	CROSS_VAL = 0.20;
+
 	(trainX, trainY, testX) = initProcessing()
 
-	network = Network([1, 2, 40])
+	indices = int(trainY.shape[0] * CROSS_VAL);
+
+	XValid = trainX[:indices]
+	YValid = trainY[:indices]
+
+	XTrain = trainX[indices:]
+	YTrain = trainY[indices:]
+
+	network = Network([4096, 100, 100, 40])
+
+	trainData = zip(XTrain, YTrain)
+	validData = zip(XValid, YValid)
+
+	#def gradientDescent(self, trainData, epochs, batchSize, learningRate, validationX = None):
+	network.gradientDescent(trainData, 100, 128, 0.001, validationX=validData)
+
 
 
 

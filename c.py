@@ -60,6 +60,28 @@ def cnn(X, Y):
 	model.add(Convolution2D(128, 3, 3))
 	model.add(Activation('relu'))
 	model.add(MaxPooling2D(pool_size=(2, 2)))
+
+	model.add(Convolution2D(256, 3, 3))
+	model.add(Activation('relu'))
+	model.add(Dropout(0.2))
+	# model.add(Convolution2D(256, 3, 3))
+	# model.add(Activation('relu'))
+	model.add(MaxPooling2D(pool_size=(2, 2)))
+
+	# model.add(Convolution2D(512, 3, 3))
+	# model.add(Activation('relu'))
+	# model.add(Dropout(0.2))
+	# model.add(Convolution2D(512, 3, 3))
+	# model.add(Activation('relu'))
+	# model.add(MaxPooling2D(pool_size=(2, 2)))
+
+	# model.add(Convolution2D(1024, 3, 3))
+	# model.add(Activation('relu'))
+	# model.add(Dropout(0.2))
+	# model.add(Convolution2D(1024, 3, 3))
+	# model.add(Activation('relu'))
+	# model.add(MaxPooling2D(pool_size=(2, 2)))
+
 	model.add(Flatten())
 	model.add(Dropout(0.2))
 
