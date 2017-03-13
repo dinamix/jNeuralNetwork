@@ -21,6 +21,7 @@ def main():
 
 	model = load_model('best_model.h5')
 
+	trainX = np.load('tinyX.npy') 
 	trainY = np.load('tinyY.npy') 
 	testX = np.load('tinyX_test.npy') # (6600, 3, 64, 64)
 
@@ -32,13 +33,17 @@ def main():
 	testX = np.swapaxes(testX, 1, 2);
 	testX = testX.astype(np.float32);
 
+	trainX = np.swapaxes(trainX, 1, 3);
+	trainX = np.swapaxes(trainX, 1, 2);
+	trainX = trainX.astype(np.float32);
+
 	testGenerator = keras.preprocessing.image.ImageDataGenerator(
 		featurewise_center=True,
 		samplewise_center=False,
 		featurewise_std_normalization=True,
 		samplewise_std_normalization=False);
 
-	testGenerator.fit(testX);
+	testGenerator.fit(trainX);
 	testFlow = testGenerator.flow(testX, batch_size=BATCH_SIZE, shuffle=False)
 
 	predictions = model.predict_generator(testFlow, 6600)

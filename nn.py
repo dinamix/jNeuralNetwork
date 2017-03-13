@@ -4,6 +4,9 @@ import cv2
 from sklearn.preprocessing import normalize
 from keras.utils import np_utils
 from sklearn.utils import shuffle
+from sklearn.metrics import classification_report, f1_score, accuracy_score, confusion_matrix
+from sklearn.cross_validation import KFold
+from sklearn.decomposition import PCA
 
 class Network(object):
 
@@ -52,7 +55,7 @@ class Network(object):
 			print "Epoch: " + str(i)
 
 			if (validationX):
-				self.evaluate(validationX)
+				self.predict(validationX)
 
 
 	def updateWeights(self, batch, learningRate):
@@ -88,12 +91,14 @@ class Network(object):
 
 		return ww
 
-	def evaluate(self, test_data):
+	def predict(self, test_data):
 
 		test_results = []
+		test = []
 
 		for x, y in test_data:
 			(activations, zs0) = self.feedForward(x)
+			test.append(np.argmax(activations[-1]))
 			test_results.append((np.argmax(activations[-1]), np.argmax(y)))
 
 		score = 0
@@ -103,6 +108,8 @@ class Network(object):
 				score += 1
 
 		print float(score) / float(len(test_data))
+
+		return test
 
 
 def flattenImages(data):
@@ -135,7 +142,10 @@ def initProcessing():
 	trainX = np.rollaxis(trainX, 1, 4)
 	testX = np.rollaxis(testX, 1, 4)
 
-	(trainX, trainY) = shuffle(trainX, trainY, random_state=0)
+	randomization = np.random.permutation(trainY.shape[0])
+
+	trainX[:] = trainX[randomization]
+	trainY[:] = trainY[randomization]
 
 	# trainXData = grayImages(trainX)
 	# testXData = grayImages(testX)
@@ -148,27 +158,85 @@ def initProcessing():
 
 	return trainXData, trainY, testXData
 
+def kFoldTest(trainX, trainY):
+
+	print "Starting kFold..."
+
+	k_fold = KFold(n=len(trainX), n_folds=2)
+
+	for train_indices, test_indices in k_fold:
+
+		train_x = []
+		train_y = []
+		test_x = []
+		test_y = []
+
+		for i in train_indices:
+			train_x.append(trainX[i])
+			train_y.append(trainY[i])
+
+		for i in test_indices:
+			test_x.append(trainX[i])
+			test_y.append(trainY[i])
+
+
+		trainData = zip(train_x, train_y)
+		validData = zip(test_x, test_y)
+
+		test_Y = []
+
+		for y in test_y:
+			test_Y.append(np.argmax(y))
+
+		network = Network([10, 40, 40, 40, 40, 40, 40, 40, 40])
+		network.gradientDescent(trainData, 25, 0.0001, validationX=validData)
+
+		predictions = network.predict(validData)
+
+		score = f1_score(test_Y, predictions, average='macro')
+		accuracy = accuracy_score(test_Y, predictions)
+		report=classification_report(test_Y, predictions)
+		print score
+		print accuracy
+		print report
+
+	print "Finished kFold..."
+
 def main():
 
 	CROSS_VAL = 0.30;
 
 	(trainX, trainY, testX) = initProcessing()
 
-	indices = int(trainY.shape[0] * CROSS_VAL);
+	randomization = np.random.permutation(trainY.shape[0])
 
-	XValid = trainX[:indices]
-	YValid = trainY[:indices]
+	trainX[:] = trainX[randomization]
+	trainY[:] = trainY[randomization]
 
-	XTrain = trainX[indices:]
-	YTrain = trainY[indices:]
+	# indices = int(trainY.shape[0] * CROSS_VAL);
 
-	network = Network([4096 * 3, 1000, 40])
+	# XValid = trainX[:indices]
+	# YValid = trainY[:indices]
 
-	trainData = zip(XTrain, YTrain)
-	validData = zip(XValid, YValid)
+	# XTrain = trainX[indices:]
+	# YTrain = trainY[indices:]
+
+	# network = Network([4096 * 3, 50, 50, 40])
+
+	# trainData = zip(XTrain, YTrain)
+	# validData = zip(XValid, YValid)
 
 	#def gradientDescent(self, trainData, epochs, learningRate, validationX = None):
-	network.gradientDescent(trainData, 100, 0.00005, validationX=validData)
+	# network.gradientDescent(trainData, 100, 0.0001, validationX=validData)
+
+	print "Fitting..."
+	pca = PCA(n_components=10)
+	pca.fit(trainX[:2500])
+	trainX = pca.transform(trainX)
+	print "Done fitting..."
+
+	kFoldTest(trainX[:], trainY[:])
+
 
 
 

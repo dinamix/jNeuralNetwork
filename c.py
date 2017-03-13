@@ -10,6 +10,7 @@ from keras.callbacks import ModelCheckpoint
 from keras import backend as K
 from keras.optimizers import Adam
 from keras.constraints import maxnorm
+from keras.layers.advanced_activations import PReLU
 
 import csv
 
@@ -20,7 +21,7 @@ def cnn(X, Y):
 
 	BATCH_SIZE = 128;
 	CROSS_VAL = 0.10;
-	EPOCH_NUM = 100;
+	EPOCH_NUM = 200;
 	SOFTMAX_SIZE = 40;
 
 	Y = np_utils.to_categorical(Y, 40);
@@ -41,44 +42,57 @@ def cnn(X, Y):
 	model = Sequential()
 
 	model.add(Convolution2D(64, 3, 3, border_mode="same", input_shape=(64, 64, 3)))
-	model.add(Activation('relu'))
+	model.add(BatchNormalization(mode=2))
+	#model.add(Activation('relu'))
+	model.add(PReLU())
 	model.add(Convolution2D(64, 3, 3, border_mode="same"))
-	model.add(Activation('relu'))
+	model.add(BatchNormalization(mode=2))
+	#model.add(Activation('relu'))
+	model.add(PReLU())
 	model.add(MaxPooling2D(pool_size=(2, 2)))
 
 	model.add(Convolution2D(128, 3, 3, border_mode="same"))
-	model.add(Activation('relu'))
+	model.add(BatchNormalization(mode=2))
+	#model.add(Activation('relu'))
+	model.add(PReLU())
 	model.add(Convolution2D(128, 3, 3, border_mode="same"))
-	model.add(Activation('relu'))
+	model.add(BatchNormalization(mode=2))
+	#model.add(Activation('relu'))
+	model.add(PReLU())
 	model.add(MaxPooling2D(pool_size=(2, 2)))
 
 	model.add(Convolution2D(256, 3, 3, border_mode="same"))
-	model.add(Activation('relu'))
+	model.add(BatchNormalization(mode=2))
+	#model.add(Activation('relu'))
+	model.add(PReLU())
 	model.add(Convolution2D(256, 3, 3, border_mode="same"))
-	model.add(Activation('relu'))
+	model.add(BatchNormalization(mode=2))
+	#model.add(Activation('relu'))
+	model.add(PReLU())
 	model.add(MaxPooling2D(pool_size=(2, 2)))
 
 	model.add(Convolution2D(512, 3, 3, border_mode="same"))
-	model.add(Activation('relu'))
+	model.add(BatchNormalization(mode=2))
+	#model.add(Activation('relu'))
+	model.add(PReLU())
 	model.add(Convolution2D(512, 3, 3, border_mode="same"))
-	model.add(Activation('relu'))
+	model.add(BatchNormalization(mode=2))
+	#model.add(Activation('relu'))
+	model.add(PReLU())
 	model.add(MaxPooling2D(pool_size=(2, 2)))
 
 	model.add(Convolution2D(1024, 3, 3, border_mode="same"))
-	model.add(Activation('relu'))
+	model.add(BatchNormalization(mode=2))
+	#model.add(Activation('relu'))
+	model.add(PReLU())
 	model.add(Convolution2D(1024, 3, 3, border_mode="same"))
-	model.add(Activation('relu'))
+	model.add(BatchNormalization(mode=2))
+	#model.add(Activation('relu'))
+	model.add(PReLU())
 	model.add(MaxPooling2D(pool_size=(2, 2)))
 
 	model.add(Flatten())
-	model.add(Dropout(0.2))
-
-	model.add(Dense(1024, activation='relu', W_constraint=maxnorm(3)))
 	model.add(Dropout(0.5))
-	model.add(Dense(512, activation='relu', W_constraint=maxnorm(3)))
-	model.add(Dropout(0.5))
-
-	model.add(Flatten())
 	model.add(Dense(SOFTMAX_SIZE))
 	model.add(Activation('softmax'))
 
@@ -107,7 +121,7 @@ def cnn(X, Y):
 	    dim_ordering=K.image_dim_ordering())
 
 	trainGenerator.fit(XTrain);
-	trainFlow = trainGenerator.flow(XTrain, YTrain, batch_size=BATCH_SIZE);
+	trainFlow = trainGenerator.flow(XTrain[indices:], YTrain[indices:], batch_size=BATCH_SIZE);
 
 	validationGenerator = keras.preprocessing.image.ImageDataGenerator(
 		featurewise_center=True,
