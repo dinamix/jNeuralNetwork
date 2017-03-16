@@ -73,7 +73,7 @@ class Network(object):
 		# Pick a training example
 		for x, y in data:
 			dw = self.backpropagation(x, y)
-			ww = [nw + dnw for nw, dnw in zip(ww, dw)]
+			ww = [nw + ddw for nw, ddw in zip(ww, dw)]
 
 		self.weights = [w + learningRate * nw for w, nw in zip(self.weights, ww)]
 
@@ -83,7 +83,7 @@ class Network(object):
 		# feedforward: Feed example through network to compute 
 		(activations, zs) = self.feedForward(x)
 
-		# backward pass
+		# backprog
 		# lecture 14 p.12: cost derivation * sigmoid prime
 		# For the output unit, compute the correction
 		delta = self.costDerivative(activations[-1], y) * self.sigmoidPrime(zs[-1]).reshape(-1, 1)
@@ -92,9 +92,7 @@ class Network(object):
 		# Lecture 14 p.16
 		# For each hidden unit h, compute its share of the correction
 		for l in xrange(2, self.nOfLayers):
-			z = zs[-l]
-			sp = self.sigmoidPrime(z).reshape(-1 ,1)
-			delta = np.dot(self.weights[-l + 1].transpose(), delta) * sp
+			delta = np.dot(self.weights[-l + 1].transpose(), delta) * self.sigmoidPrime(zs[-l]).reshape(-1 ,1)
 			ww[-l] = np.dot(delta, activations[-l - 1].reshape(1, -1))
 
 		return ww
