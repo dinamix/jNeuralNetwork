@@ -43,7 +43,7 @@ def kFoldTest(trainX, trainY):
 		pca = PCA(n_components=10)
 
 		print "Fitting..."
-		pca.fit(train_x)
+		pca.fit(train_x[:10000])
 		train_x = pca.transform(train_x)
 		test_x = pca.transform(test_x)
 
@@ -84,7 +84,7 @@ def predict(trainX, trainY, testX):
 
 def logisticRegression(trainX, trainY, testX):
 
-	logreg = LogisticRegression()
+	logreg = LogisticRegression(C=0.001)
 
 	print "Starting fitting..."
 
@@ -134,7 +134,7 @@ def initProcessing():
 	trainXData = flattenImages(trainXData)
 	testXData = flattenImages(testXData)
 
-	kFoldTest(trainXData[:7500], trainY[:7500])
+	kFoldTest(trainXData[:], trainY[:])
 
 	#predict(trainXData, trainYData, testXData)
 

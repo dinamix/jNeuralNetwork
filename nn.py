@@ -7,6 +7,7 @@ from sklearn.utils import shuffle
 from sklearn.metrics import classification_report, f1_score, accuracy_score, confusion_matrix
 from sklearn.cross_validation import KFold
 from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
 
 class Network(object):
 
@@ -20,16 +21,16 @@ class Network(object):
 		return 1.0 / (1.0 + np.exp(-z))
 
 	# lecture 14 p.12
-	def sigmoid_prime(self, z):
+	def sigmoidPrime(self, z):
 		return self.sigmoid(z) * (1 - self.sigmoid(z))
 
 	# Lecture 14 p.12
-	def cost_derivative(self, output_activations, y):
+	def costDerivative(self, output_activations, y):
 
 		output_activations = output_activations.reshape(-1, 1)
 		y = y.reshape(-1, 1)
 
-		return (output_activations - y)
+		return (y - output_activations)
 
 	# lecture 14 p.8
 	def feedForward(self, a):
@@ -46,7 +47,10 @@ class Network(object):
 
 		return activations, zs
 
-	def gradientDescent(self, trainData, epochs, learningRate, validationX = None):
+	def gradientDescent(self, trainData, epochs, learningRate, validationX):
+
+		epochList = []
+		accuracyList = []
 
 		for i in xrange(epochs):
 
@@ -54,20 +58,24 @@ class Network(object):
 
 			print "Epoch: " + str(i)
 
-			if (validationX):
-				self.predict(validationX)
+			(predictions, accuracy) = self.predict(validationX)
+
+			epochList.append(i)
+			accuracyList.append(accuracy)
+
+		return (epochList, accuracyList)
 
 
-	def updateWeights(self, batch, learningRate):
+	def updateWeights(self, data, learningRate):
 		
 		ww = [np.zeros(w.shape) for w in self.weights]
 		
 		# Pick a training example
-		for x, y in batch:
+		for x, y in data:
 			dw = self.backpropagation(x, y)
 			ww = [nw + dnw for nw, dnw in zip(ww, dw)]
 
-		self.weights = [w - learningRate * nw for w, nw in zip(self.weights, ww)]
+		self.weights = [w + learningRate * nw for w, nw in zip(self.weights, ww)]
 
 	# Lecture 14 p.16
 	def backpropagation(self, x, y):
@@ -109,7 +117,7 @@ class Network(object):
 
 		print float(score) / float(len(test_data))
 
-		return test
+		return (test, float(score) / float(len(test_data)))
 
 
 def flattenImages(data):
@@ -162,23 +170,50 @@ def kFoldTest(trainX, trainY):
 
 	print "Starting kFold..."
 
-	k_fold = KFold(n=len(trainX), n_folds=2)
+	k_fold = KFold(n=len(trainX), n_folds=6)
 
-	for train_indices, test_indices in k_fold:
+	nOfComponents = 10
+
+	print "Fitting..."
+	pca = PCA(n_components=nOfComponents)
+	pca.fit(trainX[:2500])
+	trainX = pca.transform(trainX)
+	print "Done fitting..."
+
+	layers = [		
+		[nOfComponents, 10, 40],
+		[nOfComponents, 15, 40],
+		[nOfComponents, 20, 40],
+		[nOfComponents, 25, 40],
+		[nOfComponents, 30, 40],
+		[nOfComponents, 35, 40]
+	]
+
+	for layer in layers:
+
+		print "Layer..." 
+
+
+		# for train_indices, test_indices in k_fold:
 
 		train_x = []
 		train_y = []
 		test_x = []
 		test_y = []
 
-		for i in train_indices:
-			train_x.append(trainX[i])
-			train_y.append(trainY[i])
+		train_x = trainX[:int(len(trainX) * 0.80)]
+		train_y = trainY[:int(len(trainY) * 0.80)]
 
-		for i in test_indices:
-			test_x.append(trainX[i])
-			test_y.append(trainY[i])
+		test_x = trainX[int(len(trainX) * 0.80):]
+		test_y = trainX[int(len(trainY) * 0.80):]
 
+		# for i in train_indices:
+		# 	train_x.append(trainX[i])
+		# 	train_y.append(trainY[i])
+
+		# for i in test_indices:
+		# 	test_x.append(trainX[i])
+		# 	test_y.append(trainY[i])		
 
 		trainData = zip(train_x, train_y)
 		validData = zip(test_x, test_y)
@@ -188,10 +223,11 @@ def kFoldTest(trainX, trainY):
 		for y in test_y:
 			test_Y.append(np.argmax(y))
 
-		network = Network([10, 40, 40, 40, 40, 40, 40, 40, 40])
-		network.gradientDescent(trainData, 25, 0.0001, validationX=validData)
+		network = Network(layer)
+		(epochList, accuracyList) = network.gradientDescent(trainData, 50, 0.0005, validationX=validData)
+		(predictions, accuracy) = network.predict(validData)
 
-		predictions = network.predict(validData)
+		plt.plot(epochList, accuracyList, markersize=5, label='$Nb of nodes = {a}$'.format(a=layer[1]))			
 
 		score = f1_score(test_Y, predictions, average='macro')
 		accuracy = accuracy_score(test_Y, predictions)
@@ -200,7 +236,13 @@ def kFoldTest(trainX, trainY):
 		print accuracy
 		print report
 
-	print "Finished kFold..."
+		# print "Finished kFold..."
+
+	plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+	plt.xlabel("Epochs")
+	plt.ylabel("Accuracy")
+	plt.title("Accuracy vs epoch")
+	plt.show()
 
 def main():
 
@@ -229,13 +271,7 @@ def main():
 	#def gradientDescent(self, trainData, epochs, learningRate, validationX = None):
 	# network.gradientDescent(trainData, 100, 0.0001, validationX=validData)
 
-	print "Fitting..."
-	pca = PCA(n_components=10)
-	pca.fit(trainX[:2500])
-	trainX = pca.transform(trainX)
-	print "Done fitting..."
-
-	kFoldTest(trainX[:], trainY[:])
+	kFoldTest(trainX[:int(len(trainX) * 0.80)], trainY[:int(len(trainY) * 0.80)])
 
 
 
