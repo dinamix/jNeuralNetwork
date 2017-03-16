@@ -81,13 +81,13 @@ class Network(object):
 			# lecture 14 p.12: cost derivation * sigmoid prime
 			# For the output unit, compute the correction
 			delta = self.costDerivative(activations[-1], y) * self.sigmoidPrime(zs[-1]).reshape(-1, 1)
-			ww[-1] = np.dot(delta, activations[-2].reshape(1, -1))
+			dw[-1] = np.dot(delta, activations[-2].reshape(1, -1))
 
 			# Lecture 14 p.16
 			# For each hidden unit h, compute its share of the correction
 			for l in xrange(2, self.nOfLayers):
 				delta = np.dot(self.weights[-l + 1].transpose(), delta) * self.sigmoidPrime(zs[-l]).reshape(-1 ,1)
-				ww[-l] = np.dot(delta, activations[-l - 1].reshape(1, -1))
+				dw[-l] = np.dot(delta, activations[-l - 1].reshape(1, -1))
 
 
 			ww = [nw + ddw for nw, ddw in zip(ww, dw)]
@@ -177,12 +177,12 @@ def kFoldTest(trainX, trainY):
 	print "Done fitting..."
 
 	layers = [		
-		[nOfComponents, 10, 40],
-		[nOfComponents, 15, 40],
-		[nOfComponents, 20, 40],
-		[nOfComponents, 25, 40],
-		[nOfComponents, 30, 40],
-		[nOfComponents, 35, 40]
+		# [nOfComponents, 10, 40],
+		# [nOfComponents, 15, 40],
+		# [nOfComponents, 20, 40],
+		[nOfComponents, 25, 40]
+		# [nOfComponents, 30, 40],
+		# [nOfComponents, 35, 40]
 	]
 
 	for layer in layers:
