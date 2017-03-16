@@ -15,7 +15,7 @@ class Network(object):
 
 		self.sizes = sizes
 		self.nOfLayers = len(sizes)
-		self.weights = [np.random.randn(y, x) for x, y in zip(sizes[:-1], sizes[1:])]
+		self.weights = [np.random.randn(j, i) for i, j in zip(sizes[:-1], sizes[1:])]
 
 	def sigmoid(self, z):
 		return 1.0 / (1.0 + np.exp(-z))
@@ -65,37 +65,35 @@ class Network(object):
 
 		return (epochList, accuracyList)
 
-
+	# lecture 14 p.16
 	def updateWeights(self, data, learningRate):
 		
 		ww = [np.zeros(w.shape) for w in self.weights]
 		
 		# Pick a training example
 		for x, y in data:
-			dw = self.backpropagation(x, y)
+
+			dw = [np.zeros(w.shape) for w in self.weights]
+			# feedforward: Feed example through network to compute 
+			(activations, zs) = self.feedForward(x)
+
+			# backprog
+			# lecture 14 p.12: cost derivation * sigmoid prime
+			# For the output unit, compute the correction
+			delta = self.costDerivative(activations[-1], y) * self.sigmoidPrime(zs[-1]).reshape(-1, 1)
+			ww[-1] = np.dot(delta, activations[-2].reshape(1, -1))
+
+			# Lecture 14 p.16
+			# For each hidden unit h, compute its share of the correction
+			for l in xrange(2, self.nOfLayers):
+				delta = np.dot(self.weights[-l + 1].transpose(), delta) * self.sigmoidPrime(zs[-l]).reshape(-1 ,1)
+				ww[-l] = np.dot(delta, activations[-l - 1].reshape(1, -1))
+
+
 			ww = [nw + ddw for nw, ddw in zip(ww, dw)]
 
 		self.weights = [w + learningRate * nw for w, nw in zip(self.weights, ww)]
 
-	# Lecture 14 p.16
-	def backpropagation(self, x, y):
-		ww = [np.zeros(w.shape) for w in self.weights]
-		# feedforward: Feed example through network to compute 
-		(activations, zs) = self.feedForward(x)
-
-		# backprog
-		# lecture 14 p.12: cost derivation * sigmoid prime
-		# For the output unit, compute the correction
-		delta = self.costDerivative(activations[-1], y) * self.sigmoidPrime(zs[-1]).reshape(-1, 1)
-		ww[-1] = np.dot(delta, activations[-2].reshape(1, -1))
-
-		# Lecture 14 p.16
-		# For each hidden unit h, compute its share of the correction
-		for l in xrange(2, self.nOfLayers):
-			delta = np.dot(self.weights[-l + 1].transpose(), delta) * self.sigmoidPrime(zs[-l]).reshape(-1 ,1)
-			ww[-l] = np.dot(delta, activations[-l - 1].reshape(1, -1))
-
-		return ww
 
 	def predict(self, test_data):
 
